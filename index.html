@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>This week's rhythm</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=Karla:wght@400;500;700&display=swap');
+* { box-sizing: border-box; margin: 0; }
+body { min-height: 100vh; background: #10201d; color: #ede7da; font-family: 'Karla', system-ui, sans-serif; }
+.page { padding: 26px 16px 44px; max-width: 620px; margin: 0 auto; }
+.eyebrow { font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: #9fb3ab; margin-bottom: 8px; }
+h1 { font-family: 'Fraunces', serif; font-weight: 650; font-size: clamp(26px, 6vw, 36px); }
+.step { margin-top: 26px; }
+.step h2 { font-family: 'Fraunces', serif; font-weight: 650; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+.n { font-family:'Karla',sans-serif; font-size:12px; font-weight:700; width:22px; height:22px; border-radius:50%;
+     background:#e9b458; color:#241a07; display:inline-flex; align-items:center; justify-content:center; }
+.stepSub { font-size: 13px; color: #9fb3ab; margin-top: 6px; }
+.protoRow { display: flex; gap: 8px; overflow-x: auto; padding: 12px 2px 4px; }
+.proto { flex:0 0 auto; display:flex; flex-direction:column; gap:3px; text-align:left;
+  background:#172b27; color:#ede7da; border:1px solid rgba(237,231,218,0.1);
+  border-radius:12px; padding:10px 13px; cursor:pointer; font-family:'Karla',sans-serif; }
+.proto.on { border-color:#e9b458; background:rgba(233,180,88,0.12); }
+button:focus-visible { outline: 2px solid #e9b458; outline-offset: 1px; }
+.pName { font-weight:700; font-size:13.5px; }
+.pTag { font-size:11px; color:#9fb3ab; }
+.blurb { font-size:13.5px; color:#b9c8c0; line-height:1.5; margin-top:8px; max-width:56ch; }
+.dayToggles { display:flex; gap:6px; margin-top:12px; flex-wrap:wrap; }
+.dayT { font-family:'Karla',sans-serif; font-size:13px; font-weight:700;
+  background:#172b27; color:#cdd9d3; border:1px solid rgba(237,231,218,0.12);
+  border-radius:10px; padding:9px 0; width:calc((100% - 36px)/7); min-width:42px; cursor:pointer; }
+.dayT.on { background:#e39a8b; border-color:#e39a8b; color:#33130c; }
+.planHead { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+.planBtns { display:flex; gap:8px; flex-wrap:wrap; }
+.another,.pdfBtn { font-family:'Karla',sans-serif; font-size:12px; font-weight:700; border-radius:999px; padding:7px 13px; cursor:pointer; }
+.another { background:transparent; color:#e9b458; border:1px solid rgba(233,180,88,0.5); }
+.pdfBtn { background:#e9b458; color:#241a07; border:1px solid #e9b458; }
+.pdfBtn:disabled { opacity:.4; cursor:default; }
+.conflict { margin-top:12px; font-size:13.5px; line-height:1.55; color:#e8cfc8;
+  background:rgba(227,154,139,0.1); border:1px solid rgba(227,154,139,0.35); border-radius:10px; padding:10px 13px; }
+.conflict.soft { color:#d8e2dc; background:rgba(159,179,171,0.1); border-color:rgba(159,179,171,0.3); }
+.week { margin-top:12px; display:flex; flex-direction:column; gap:7px; }
+.wDay { background:#172b27; border:1px solid rgba(237,231,218,0.07); border-radius:12px; padding:11px 13px; }
+.wDay.fastDay { background:#0d1a17; border-color:rgba(233,180,88,0.35); }
+.wDay.freeDay { border-color:rgba(227,154,139,0.45); }
+.wDay.adjusted { border-style: dashed; border-color: rgba(233,180,88,0.7); background: rgba(233,180,88,0.07); }
+.wDay.adjusted .wNote { color: #e9b458; font-weight: 700; }
+.badge { display:inline-block; font-size:9.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  background:#e9b458; color:#241a07; border-radius:999px; padding:2px 7px; margin-left:7px; vertical-align:2px; }
+.adjHint { font-size:11.5px; color:#9fb3ab; margin-top:7px; line-height:1.45; }
+.wTop { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+.wLeft { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.wName { font-weight:700; font-size:14.5px; }
+.wNote { font-size:11.5px; color:#9fb3ab; }
+.freeDay .wNote { color:#e39a8b; }
+.fastDay .wNote { color:#e9b458; }
+.meals { display:flex; gap:5px; flex:0 0 auto; }
+.meal { font-family:'Karla',sans-serif; font-size:10.5px; font-weight:700; border-radius:6px; padding:5px 7px; min-width:30px; text-align:center;
+  border:1px solid transparent; cursor:pointer; }
+.meal.off { text-decoration:line-through; border-color:rgba(237,231,218,0.12); }
+.undoB { font-family:'Karla',sans-serif; font-size:11px; font-weight:700; cursor:pointer; align-self:flex-start;
+  background:transparent; color:#e9b458; border:1px solid rgba(233,180,88,0.5); border-radius:999px; padding:3px 9px; margin-top:6px; }
+.meal.onM { background:linear-gradient(90deg,#c98f2e,#e9b458); color:#241a07; }
+.meal.off { background:#0b1614; color:#55665f; }
+.adjRow { display:flex; gap:6px; margin-top:9px; flex-wrap:wrap; }
+.adj { font-family:'Karla',sans-serif; font-size:11px; font-weight:700; cursor:pointer;
+  background:transparent; color:#9fb3ab; border:1px solid rgba(237,231,218,0.16); border-radius:999px; padding:4px 10px; }
+.adj.on { background:rgba(233,180,88,0.16); color:#e9b458; border-color:rgba(233,180,88,0.5); }
+.saveTag { margin-top:14px; font-size:12px; color:#7f978e; }
+.pdfReady { margin-top:12px; font-size:13px; color:#cdd9d3; background:rgba(233,180,88,0.1);
+  border:1px solid rgba(233,180,88,0.4); border-radius:10px; padding:9px 13px; line-height:1.5; }
+.pdfReady a { color:#e9b458; font-weight:700; }
+.saveTag.error { color:#e39a8b; }
+.foot { margin-top:30px; border-top:1px solid rgba(237,231,218,0.1); padding-top:18px; }
+.foot p { font-size:13px; color:#9fb3ab; line-height:1.55; max-width:58ch; }
+.motto { font-family:'Fraunces',serif; font-style:italic; margin-top:12px; font-size:15px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <p class="eyebrow" id="eyebrow">Sunday planning</p>
+    <h1>This week's rhythm</h1>
+  </header>
+
+  <section class="step">
+    <h2><span class="n">1</span> Choose your plan</h2>
+    <div class="protoRow" id="protoRow"></div>
+    <p class="blurb" id="blurb"></p>
+  </section>
+
+  <section class="step">
+    <h2><span class="n">2</span> Tap days that need to stay easy</h2>
+    <p class="stepSub">Marked days keep lunch and dinner free — rebuilding days get placed around them.</p>
+    <div class="dayToggles" id="dayToggles"></div>
+  </section>
+
+  <section class="step">
+    <div class="planHead">
+      <h2><span class="n">3</span> Your week</h2>
+      <div class="planBtns">
+        <button class="another" id="anotherBtn" style="display:none"></button>
+        <button class="pdfBtn" id="pdfBtn">Save week as PDF</button>
+      </div>
+    </div>
+    <p class="stepSub">Life happened? Tap any meal to switch it on or off for that day — struck-through means your body keeps rebuilding through it. The rest of the week stays put, the way the book advises.</p>
+    <div id="pdfOut"></div>
+    <div id="planArea"></div>
+    <div id="guardArea"></div>
+    <p class="saveTag" id="saveTag"></p>
+  </section>
+
+  <footer class="foot">
+    <p>
+      Ended a rebuilding day early? The hours still counted — pick up at your next
+      planned meal, no make-up stretches. Rebuilding ran long because it felt
+      easy? Enjoy it, but don't let the plan inflate to match your best days. While trying to
+      conceive, the shorter plans remain the safer companions.
+    </p>
+    <p class="motto">Progress, not perfection.</p>
+  </footer>
+</div>
+
+<script>
+// ————— storage adapter: works inside Claude (window.storage) AND self-hosted (localStorage) —————
+const store = {
+  usingLocal: typeof window.storage === "undefined",
+  async get(key){
+    if (!this.usingLocal) return await window.storage.get(key);
+    const v = localStorage.getItem(key);
+    return v === null ? null : { key, value: v };
+  },
+  async set(key, value){
+    if (!this.usingLocal) return await window.storage.set(key, value);
+    localStorage.setItem(key, value);
+    return { key, value };
+  }
+};
+
+// ————— data —————
+const PROTOCOLS = [
+  { id:"tre", name:"Daily 16:8 / 18:6", tag:"no full rebuilding days",
+    blurb:"Two meals in a daily window. Free days just get a gentler window.",
+    kind:"daily", baseDay:["F","L","D"], fastDay:["F","F","D"] },
+  { id:"d2d24", name:"3 × 24 h · dinner to dinner", tag:"dinner every day",
+    blurb:"Skip breakfast + lunch on rebuilding days. You still eat dinner daily — dinners out always fit.",
+    kind:"single", count:3, fastDay:["F","F","D"], baseDay:["F","L","D"], fastNote:"Keep rebuilding until dinner" },
+  { id:"l2l24", name:"3 × 24 h · lunch to lunch", tag:"gentler afternoons",
+    blurb:"Lunch daily; skip dinner + next breakfast on rebuilding days. The book's pick for afternoon crashes or thyroid issues.",
+    kind:"single", count:3, fastDay:["F","L","F"], baseDay:["F","L","D"], fastNote:"Rebuilding begins after lunch" },
+  { id:"h36", name:"3 × 36 h", tag:"the gold standard",
+    blurb:"A full rebuilding day, a full nourishing day of three meals, alternating. The book's gold standard for weight loss.",
+    kind:"single", count:3, spaced:true, fastDay:["F","F","F"], baseDay:["B","L","D"], fastNote:"Full rebuilding day" },
+  { id:"h42", name:"3 × 42 h", tag:"deep hormonal work",
+    blurb:"Full rebuilding days, nourishing again at lunch the next day. The protocol behind the book's PCOS stories.",
+    kind:"single", count:3, spaced:true, fastDay:["F","F","F"], baseDay:["F","L","D"], fastNote:"Full rebuilding day", afterNote:"Keep rebuilding until lunch" },
+  { id:"h48", name:"2 × 48 h", tag:"two deep fasts",
+    blurb:"Rebuild from one dinner to dinner two days later, twice a week. Fewer stretches, deeper burn.",
+    kind:"block", count:2, baseDay:["B","L","D"], fastDay:["F","F","F"],
+    block:[ {pattern:["F","F","F"], note:"Full rebuilding day"}, {pattern:["F","F","D"], note:"Keep rebuilding until dinner"} ] },
+  { id:"h66", name:"2 × 66 h", tag:"for experienced weeks",
+    blurb:"Two days fully off food, breaking at lunch on the third. The book says not every week — treat it as occasional.",
+    kind:"block", count:2, baseDay:["F","L","D"], fastDay:["F","F","F"],
+    block:[ {pattern:["F","F","F"], note:"Full rebuilding day"}, {pattern:["F","F","F"], note:"Full rebuilding day"}, {pattern:["F","L","D"], note:"Keep rebuilding until lunch"} ] },
+];
+const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const SHORT = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const MEAL_NAMES = ["Breakfast","Lunch","Dinner"];
+const STORE_KEY = "sunday-fast-plan:v2";
+
+// ————— state —————
+let state = { protocolId:"d2d24", blocked:[], altIndex:0, overrides:{}, openDay:null };
+let saveState = "loading", loaded = false, saveTimer = null;
+
+// ————— placement engine —————
+function combinations(n,k){
+  const out=[]; const rec=(s,acc)=>{ if(acc.length===k){out.push(acc.slice());return;}
+    for(let i=s;i<n;i++){acc.push(i);rec(i+1,acc);acc.pop();} }; rec(0,[]); return out;
+}
+function buildWeek(proto, placement){
+  const week = DAYS.map(()=>({ pattern:(proto.baseDay||["F","L","D"]).slice(), note:"", isFast:false }));
+  if(proto.kind==="daily") return week;
+  if(proto.kind==="single"){
+    placement.forEach(i=>{
+      week[i]={ pattern:proto.fastDay.slice(), note:proto.fastNote, isFast:true };
+      if(proto.afterNote && i+1<7 && !placement.includes(i+1)) week[i+1].note=proto.afterNote;
+    });
+  } else {
+    placement.forEach(start=>{
+      proto.block.forEach((b,j)=>{
+        const idx=start+j;
+        if(idx<7) week[idx]={ pattern:b.pattern.slice(), note:b.note, isFast:b.pattern[1]==="F" };
+      });
+    });
+  }
+  return week;
+}
+function dayIsSocialSafe(d){ return d.pattern[1]!=="F" && d.pattern[2]!=="F"; }
+function scorePlacement(c){
+  if(c.length<2) return 0;
+  let minGap=7; for(let i=1;i<c.length;i++) minGap=Math.min(minGap,c[i]-c[i-1]);
+  return minGap*10 + (6-c[0]);
+}
+function validPlacements(proto, blocked){
+  if(proto.kind==="daily") return [{placement:[],score:0}];
+  let candidates=[], singles=[];
+  if(proto.kind==="single"){
+    candidates=combinations(7,proto.count).filter(c=>{
+      if(proto.spaced){ for(let i=1;i<c.length;i++) if(c[i]-c[i-1]<2) return false; }
+      return true;
+    });
+  } else {
+    const len=proto.block.length;
+    const fastLen=proto.block.filter(b=>b.pattern[1]==="F").length;
+    const starts=[]; for(let i=0;i<=7-fastLen;i++) starts.push(i);
+    for(let a=0;a<starts.length;a++) for(let b=a+1;b<starts.length;b++)
+      if(starts[b]-starts[a]>=len) candidates.push([starts[a],starts[b]]);
+    singles = starts.map(s=>[s]);
+  }
+  const scored=[];
+  for(const c of candidates){
+    const week=buildWeek(proto,c);
+    if(blocked.some(i=>!dayIsSocialSafe(week[i]))) continue;
+    scored.push({placement:c, score:scorePlacement(c)});
+  }
+  if(scored.length===0 && proto.kind==="block"){
+    for(const c of singles){
+      const week=buildWeek(proto,c);
+      if(blocked.some(i=>!dayIsSocialSafe(week[i]))) continue;
+      scored.push({placement:c, score:scorePlacement(c)-100, reduced:true});
+    }
+  }
+  scored.sort((a,b)=>b.score-a.score);
+  return scored;
+}
+
+// ————— effective week (plan + mid-week adjustments) —————
+function dayLabelFor(pattern){
+  const meals = pattern.filter(c=>c!=="F").length;
+  if(meals===0) return "Adjusted · full rebuilding day";
+  if(meals===3) return "Adjusted · full nourishing day";
+  return "Adjusted · " + pattern.map((c,j)=>c==="F"?null:MEAL_NAMES[j].toLowerCase()).filter(Boolean).join(" + ");
+}
+function currentChoice(){
+  const proto=PROTOCOLS.find(p=>p.id===state.protocolId);
+  const options=validPlacements(proto, state.blocked);
+  const choice=options.length ? options[Math.min(state.altIndex, options.length-1)] : null;
+  const plannedWeek = choice ? buildWeek(proto, choice.placement) : null;
+  let week = null;
+  if(plannedWeek){
+    week = plannedWeek.map((d,i)=>{
+      const ov = state.overrides[i];
+      if(Array.isArray(ov) && ov.length===3){
+        return { pattern: ov.slice(), note: dayLabelFor(ov), isFast: ov[1]==="F", adjusted:true };
+      }
+      return d;
+    });
+  }
+  return { proto, options, choice, week, plannedWeek };
+}
+function guards(week, plannedWeek, proto){
+  const notes=[];
+  const full = d => d.pattern.every(c=>c==="F");
+  const plannedFull = plannedWeek.filter(full).length;
+  const nowFull = week.filter(full).length;
+  if(nowFull > plannedFull){
+    notes.push("This week now has more full rebuilding days than the plan calls for. If a rebuilding day ended early, the book's advice is to pick up at the next planned meal — not to add make-up days.");
+  }
+  for(let i=1;i<7;i++){
+    if(week[i] && week[i-1] && full(week[i]) && full(week[i-1]) &&
+       (week[i].adjusted || week[i-1].adjusted)){
+      notes.push("Two full rebuilding days now sit back-to-back — that quietly becomes a much longer stretch than planned. The book keeps full rebuilding days separated by nourishing days.");
+      break;
+    }
+  }
+  return notes;
+}
+
+// ————— helpers —————
+function upcomingMonday(){
+  const d=new Date(); const day=d.getDay();
+  const add = day===1 ? 0 : (8-day)%7;
+  const m=new Date(d); m.setDate(d.getDate()+add);
+  return m;
+}
+function mondayLabel(){ return upcomingMonday().toLocaleDateString(undefined,{month:"short",day:"numeric"}); }
+
+// ————— storage —————
+async function loadState(){
+  try{
+    const res=await store.get(STORE_KEY);
+    if(res && res.value){
+      const p=JSON.parse(res.value);
+      if(p.protocolId && PROTOCOLS.some(x=>x.id===p.protocolId)) state.protocolId=p.protocolId;
+      if(Array.isArray(p.blocked)) state.blocked=p.blocked.filter(i=>i>=0&&i<7);
+      if(typeof p.altIndex==="number") state.altIndex=p.altIndex;
+      if(p.overrides && typeof p.overrides==="object"){
+        state.overrides={};
+        for(const k in p.overrides){
+          const v=p.overrides[k];
+          if(Array.isArray(v) && v.length===3) state.overrides[k]=v;
+        }
+      }
+    }
+  }catch(e){ /* nothing saved yet */ }
+  loaded=true; saveState="saved"; render();
+}
+function scheduleSave(){
+  if(!loaded) return;
+  saveState="saving"; renderSaveTag();
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(async ()=>{
+    try{
+      const ok=await store.set(STORE_KEY, JSON.stringify({
+        protocolId:state.protocolId, blocked:state.blocked, altIndex:state.altIndex, overrides:state.overrides
+      }));
+      saveState = ok ? "saved" : "error";
+    }catch(e){ saveState="error"; }
+    renderSaveTag();
+  },500);
+}
+
+// ————— PDF export —————
+function exportPDF(){
+  const out=document.getElementById("pdfOut"); out.innerHTML="";
+  try{
+    const { proto, week } = currentChoice();
+    if(!week) return;
+    if(!window.jspdf || !window.jspdf.jsPDF){
+      out.appendChild(el("p","conflict","The PDF library couldn't load — check your connection and reopen this page, then try again."));
+      return;
+    }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit:"mm", format:"a4" });
+    const inkText=[35,45,41], grey=[130,140,135], faint=[175,182,178];
+
+    doc.setTextColor(inkText[0],inkText[1],inkText[2]);
+    doc.setFont("times","bold"); doc.setFontSize(20);
+    doc.text("This week's rhythm", 14, 16);
+    doc.setFont("helvetica","normal"); doc.setFontSize(10);
+    doc.setTextColor(grey[0],grey[1],grey[2]);
+    doc.text("Week of " + mondayLabel() + "  ·  Plan: " + proto.name, 14, 23);
+    const extras=[];
+    if(state.blocked.length) extras.push("Easy days: " + state.blocked.slice().sort((a,b)=>a-b).map(i=>SHORT[i]).join(", "));
+    if(Object.keys(state.overrides).length) extras.push("Includes mid-week adjustments");
+    if(extras.length) doc.text(extras.join("   ·   "), 14, 29);
+    doc.setDrawColor(inkText[0],inkText[1],inkText[2]); doc.setLineWidth(0.4);
+    doc.line(14, 33, 196, 33);
+
+    const body = week.map((d,i)=>{
+      const isBlocked = state.blocked.includes(i);
+      return [
+        DAYS[i],
+        d.pattern[0]==="F" ? "—" : MEAL_NAMES[0],
+        d.pattern[1]==="F" ? "—" : MEAL_NAMES[1],
+        d.pattern[2]==="F" ? "—" : MEAL_NAMES[2],
+        isBlocked ? "Your easy day" : (d.note || (d.isFast ? "Rebuilding day" : "Nourishing day")),
+      ];
+    });
+
+    doc.autoTable({
+      startY: 40,
+      head: [["Day","Morning","Midday","Evening","Notes"]],
+      body: body,
+      theme: "plain",
+      styles: { font:"helvetica", fontSize:10, cellPadding:3.2, textColor:inkText },
+      headStyles: { fontStyle:"bold", textColor:inkText, lineWidth:{bottom:0.3}, lineColor:inkText },
+      bodyStyles: { lineWidth:{bottom:0.15}, lineColor:[210,213,210] },
+      columnStyles: { 0:{fontStyle:"bold", cellWidth:28}, 4:{cellWidth:56, textColor:grey, fontSize:9} },
+      didParseCell: function(data){
+        if(data.section!=="body") return;
+        const colIdx=data.column.index;
+        if(colIdx>=1 && colIdx<=3){
+          if(data.cell.raw==="—"){ data.cell.styles.textColor=faint; }
+          else { data.cell.styles.fontStyle="bold"; }
+        }
+      },
+    });
+
+    let y = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(9); doc.setTextColor(110,120,115);
+    const foot = doc.splitTextToSize(
+      "Rules to keep: no fasting once pregnant · after a broken fast, pick up at the next planned meal — no make-up fasts · " +
+      "treats travel with meals, never between them. Progress, not perfection.", 180);
+    doc.text(foot, 14, y);
+
+    const fname = "week-plan-" + mondayLabel().replace(/[^A-Za-z0-9]+/g,"-") + ".pdf";
+    const blob = doc.output("blob");
+    if(pdfUrl) URL.revokeObjectURL(pdfUrl);
+    pdfUrl = URL.createObjectURL(blob);
+
+    // path 1: normal download (works self-hosted; may be silently blocked in embedded frames)
+    try{ doc.save(fname); }catch(e){ /* fall through to the link */ }
+
+    // path 2: always offer an explicit link the user can tap
+    const wrap=el("p","pdfReady");
+    wrap.appendChild(document.createTextNode("PDF ready · "));
+    const a=document.createElement("a");
+    a.href=pdfUrl; a.textContent="open it here"; a.target="_blank"; a.rel="noopener";
+    wrap.appendChild(a);
+    const b=document.createElement("a");
+    b.href=pdfUrl; b.download=fname; b.textContent="download";
+    wrap.appendChild(document.createTextNode(" or "));
+    wrap.appendChild(b);
+    wrap.appendChild(document.createTextNode(" — use these if no download started automatically."));
+    out.appendChild(wrap);
+  }catch(err){
+    out.appendChild(el("p","conflict","Couldn't build the PDF (" + (err && err.message ? err.message : "unknown error") + "). Tell me this message and I'll fix it."));
+  }
+}
+let pdfUrl = null;
+
+// ————— rendering —————
+function el(tag, cls, text){
+  const e=document.createElement(tag);
+  if(cls) e.className=cls;
+  if(text!==undefined) e.textContent=text;
+  return e;
+}
+function renderSaveTag(){
+  const t=document.getElementById("saveTag");
+  t.className="saveTag "+saveState;
+  const where = store.usingLocal ? "in this browser" : "on this device";
+  t.textContent = saveState==="saving" ? "Saving…"
+    : saveState==="error" ? "Couldn't save — plan lives only in this session"
+    : saveState==="loading" ? "" : "Plan saved " + where + " · it'll be here next Sunday";
+}
+function render(){
+  document.getElementById("eyebrow").textContent = "Sunday planning · week of " + mondayLabel();
+
+  const row=document.getElementById("protoRow"); row.innerHTML="";
+  PROTOCOLS.forEach(p=>{
+    const b=el("button","proto"+(p.id===state.protocolId?" on":""));
+    b.appendChild(el("span","pName",p.name));
+    b.appendChild(el("span","pTag",p.tag));
+    b.onclick=()=>{ state.protocolId=p.id; state.altIndex=0; state.overrides={}; state.openDay=null; scheduleSave(); render(); };
+    row.appendChild(b);
+  });
+  const proto=PROTOCOLS.find(p=>p.id===state.protocolId);
+  document.getElementById("blurb").textContent=proto.blurb;
+
+  const dt=document.getElementById("dayToggles"); dt.innerHTML="";
+  SHORT.forEach((d,i)=>{
+    const b=el("button","dayT"+(state.blocked.includes(i)?" on":""),d);
+    b.setAttribute("aria-pressed", state.blocked.includes(i));
+    b.onclick=()=>{
+      state.altIndex=0;
+      state.blocked = state.blocked.includes(i) ? state.blocked.filter(x=>x!==i) : state.blocked.concat([i]);
+      scheduleSave(); render();
+    };
+    dt.appendChild(b);
+  });
+
+  const { options, choice, week, plannedWeek } = currentChoice();
+  const area=document.getElementById("planArea"); area.innerHTML="";
+  const guardArea=document.getElementById("guardArea"); guardArea.innerHTML="";
+  const anotherBtn=document.getElementById("anotherBtn");
+  if(options.length>1){
+    anotherBtn.style.display="";
+    anotherBtn.textContent="Try another arrangement ("+(Math.min(state.altIndex,options.length-1)+1)+"/"+options.length+")";
+    anotherBtn.onclick=()=>{ state.altIndex=(state.altIndex+1)%options.length; state.overrides={}; scheduleSave(); render(); };
+  } else anotherBtn.style.display="none";
+
+  document.getElementById("pdfBtn").disabled = !week;
+
+  if(!week){
+    area.appendChild(el("p","conflict",
+      "This plan can't fit around that many easy days. Free one up, or switch to dinner-to-dinner 24 h (dinner is eaten every day) or daily 16:8."));
+  } else {
+    if(choice.reduced){
+      area.appendChild(el("p","conflict soft",
+        "Only one rebuilding stretch fits around your easy days this week — and one is plenty. The book would call that adapting, not failing."));
+    }
+    const wk=el("div","week");
+    week.forEach((d,i)=>{
+      const isBlocked=state.blocked.includes(i);
+      const card=el("div","wDay"+(d.isFast?" fastDay":"")+(isBlocked?" freeDay":"")+(d.adjusted?" adjusted":""));
+      const top=el("div","wTop");
+      const left=el("div","wLeft");
+      const nameSpan=el("span","wName",DAYS[i]);
+      if(d.adjusted) nameSpan.appendChild(el("span","badge","Adjusted"));
+      left.appendChild(nameSpan);
+      left.appendChild(el("span","wNote", isBlocked ? "Your easy day" : (d.note || (d.isFast?"Rebuilding day":"Nourishing day"))));
+      if(d.adjusted){
+        const undo=el("button","undoB","\u21ba Back to the plan");
+        undo.onclick=()=>{ delete state.overrides[i]; scheduleSave(); render(); };
+        left.appendChild(undo);
+      }
+      top.appendChild(left);
+      const meals=el("div","meals");
+      d.pattern.forEach((c,j)=>{
+        const isOn = c!=="F";
+        const b=el("button","meal "+(isOn?"onM":"off"), MEAL_NAMES[j]);
+        b.setAttribute("aria-pressed", isOn);
+        b.title = (isOn ? "Tap to skip " : "Tap to add ") + MEAL_NAMES[j].toLowerCase();
+        b.onclick=()=>{
+          const cur = d.pattern.slice();
+          cur[j] = isOn ? "F" : ["B","L","D"][j];
+          const plannedPattern = plannedWeek[i].pattern;
+          if(cur.join("")===plannedPattern.join("")) delete state.overrides[i];
+          else state.overrides[i]=cur;
+          scheduleSave(); render();
+        };
+        meals.appendChild(b);
+      });
+      top.appendChild(meals);
+      card.appendChild(top);
+      wk.appendChild(card);
+    });
+    area.appendChild(wk);
+
+    guards(week, plannedWeek, proto).forEach(g=>guardArea.appendChild(el("p","conflict",g)));
+  }
+  renderSaveTag();
+}
+
+document.getElementById("pdfBtn").onclick=exportPDF;
+render();
+loadState();
+</script>
+</body>
+</html>

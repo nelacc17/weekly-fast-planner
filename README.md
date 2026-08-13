@@ -4,6 +4,8 @@ A single-file weekly planner for intermittent fasting, built on the protocols fr
 
 Fasting hours are **rebuilding days** (when your body heals) and eating hours are **nourishing days** (when it rebuilds with food). The planner's job is to arrange them around your actual week — the dinner out, the period-hunger day, the day you were traveling and accidentally stretched longer.
 
+Live: https://nelacc17.github.io/weekly-fast-planner/
+
 ## What it does
 
 **Plan the week in three taps.** Pick a protocol — daily 16:8/18:6, 24h dinner-to-dinner or lunch-to-lunch, 36h, 42h, 2×48h, or 2×66h. Mark the days that need to stay easy (social dinners, hard days), and the planner places the rebuilding stretches around them, properly spaced. Don't like the layout? Ask for another.

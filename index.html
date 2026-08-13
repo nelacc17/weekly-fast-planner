@@ -48,6 +48,7 @@ button:focus-visible { outline: 2px solid #e9b458; outline-offset: 1px; }
   border:1px solid rgba(237,231,218,0.16); border-radius:8px; padding:8px 10px; }
 .wTimes { font-size:11px; color:#7f978e; margin-top:2px; font-variant-numeric:tabular-nums; }
 .pregTop { margin-top:16px; }
+.pregNote { font-size:12px; color:#9fb3ab; line-height:1.5; margin-top:5px; max-width:56ch; }
 .preg { display:flex; align-items:center; gap:8px; margin-top:14px; font-size:13.5px; color:#e8cfc8; cursor:pointer; }
 .preg input { accent-color:#e39a8b; width:17px; height:17px; cursor:pointer; }
 .meal:disabled { cursor:default; }
@@ -126,6 +127,7 @@ button:focus-visible { outline: 2px solid #e9b458; outline-offset: 1px; }
 
   <div id="tabPlan">
   <label class="preg pregTop"><input type="checkbox" id="pregChk"> I'm pregnant or breastfeeding</label>
+  <p class="pregNote">Fasting isn't recommended during pregnancy or breastfeeding. Checking this switches the planner to three nourishing meals a day — no grazing between them, just the natural overnight rest.</p>
 
   <section class="step" id="planSec">
     <h2><span class="n">1</span> Choose your plan</h2>
@@ -344,8 +346,12 @@ function validPlacements(proto, blocked){
 function dayLabelFor(pattern){
   const meals = pattern.filter(c=>c!=="F").length;
   if(meals===0) return "Full rebuilding day";
+  if(meals===1){
+    const which = pattern.map((c,j)=>c==="F"?null:MEAL_NAMES[j].toLowerCase()).filter(Boolean)[0];
+    return "Rebuilding day · " + which + " only";
+  }
   if(meals===3) return "Full nourishing day";
-  return pattern.map((c,j)=>c==="F"?null:MEAL_NAMES[j].toLowerCase()).filter(Boolean).join(" + ");
+  return "Nourishing day · " + pattern.map((c,j)=>c==="F"?null:MEAL_NAMES[j].toLowerCase()).filter(Boolean).join(" + ");
 }
 const NOURISHING_SEASON = { id:"season", name:"Nourishing season", kind:"daily", baseDay:["B","L","D"],
   blurb:"Three nourishing meals a day, nothing between them. In window terms: nourishing from breakfast to dinner (roughly 11\u201312 hours), resting overnight. That's as tight as this season gets \u2014 tighter windows are fasting, and fasting waits." };
@@ -363,7 +369,7 @@ function currentChoice(){
     week = plannedWeek.map((d,i)=>{
       const ov = state.overrides[i];
       if(Array.isArray(ov) && ov.length===3){
-        return { pattern: ov.slice(), note: dayLabelFor(ov), isFast: ov[1]==="F", edited:true };
+        return { pattern: ov.slice(), note: dayLabelFor(ov), isFast: ov.filter(c=>c!=="F").length<=1, edited:true };
       }
       return d;
     });
@@ -386,12 +392,13 @@ function guards(week, plannedWeek, proto){
   return notes;
 }
 function weekSummary(week){
-  const full = d => d.pattern.every(c=>c==="F");
-  const fullDays = week.filter(full).length;
-  const nourishing = week.filter(d=>!full(d)).length;
+  const mealsOf = d => d.pattern.filter(c=>c!=="F").length;
+  const rebuild = week.filter(d=>mealsOf(d)<=1).length;
+  const fullDays = week.filter(d=>mealsOf(d)===0).length;
+  const nourishing = 7 - rebuild;
   const easy = state.blocked.length;
   const bits = [];
-  bits.push(fullDays + " full rebuilding day" + (fullDays===1?"":"s"));
+  bits.push(rebuild + " rebuilding day" + (rebuild===1?"":"s") + (fullDays ? " ("+fullDays+" full)" : ""));
   bits.push(nourishing + " nourishing day" + (nourishing===1?"":"s"));
   if(easy) bits.push(easy + " easy");
   return "This week holds " + bits.join(" · ");
